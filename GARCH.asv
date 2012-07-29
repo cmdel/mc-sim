@@ -1,0 +1,106 @@
+%------------------------------------------------------------------%
+%------------------------------------------------------------------%
+%                                                                  %
+%   A script to produce the plots for the prices and GARCH(1,1) of %
+%   the FTSE100, S&P500, and NIKKEI225 indices.                    %
+%                                                                  %
+%------------------------------------------------------------------%
+%   INPUTS:                                                        %
+%                                                                  %
+%   This script requires the Datastream Toolbox                    %
+%                                                                  %
+%   OUTPUTS:                                                       %
+%                                                                  %
+%   Figure 1        - The three indices daily adjusted closing     %
+%                     pricesfrom 1990 to today(July 2012)          %
+%   Figure 2        - The daily continously compounded returns     %
+%                     of all indices from 1990 to today(July 2012),%
+%                     overlayed by the GARCH(1,1) conditional      %
+%                     standard deviation.                          %
+%                                                                  %
+%------------------------------------------------------------------%
+%                                                                  %
+%------------------------------------------------------------------%
+% Christos  Delivorias - OR MSc Student                            %
+% The University of Edinburgh                                      %
+% August 2012                                                      %
+%------------------------------------------------------------------%
+
+% Clear existing data and figures
+clf;
+clear all;
+close all;
+format short;
+
+% Connect to Yahoo Finance and fetch data
+Connect = yahoo;
+dataFTSE=fetch(Connect,'^FTSE','Jan 1 1990',today, 'd');
+dataN225=fetch(Connect,'^N225','Jan 1 1990',today, 'd');
+dataGSPC=fetch(Connect,'^GSPC','Jan 1 1990',today, 'd');
+close(Connect);
+
+% Calculate daily returns and GARCH SD for each index
+dataFTSEret = [0.0 price2ret(dataFTSE(:,end))'];
+retFTSE=fints(dataFTSE(:,1),dataFTSEret','retFTSE100','d',...
+    'retFTSE100');
+[coeff1, errors1, LLF1, innovations1, sigmas1] = ...
+    garchfit(dataFTSEret);
+sigmaFTSE = fints(dataFTSE(:,1),sigmas1','retFTSE100',...
+    'd','retFTSE100');
+
+dataN225ret = [0.0 price2ret(dataN225(:,end))'];
+retN225=fints(dataN225(:,1),dataN225ret','retNIKKEI','d',...
+    'retNIKKEI');
+[coeff2, errors2, LLF2, innovations2, sigmas2] = ...
+    garchfit(dataN225ret);
+sigmaN225 = fints(dataN225(:,1),sigmas2','retNIKKEI',...
+    'd','retNIKKEI');
+
+dataGSPCret = [0.0 price2ret(dataGSPC(:,end))'];
+retGSPC=fints(dataGSPC(:,1),dataGSPCret','retSP500','d',...
+    'retSP500');
+[coeff3, errors3, LLF3, innovations3, sigmas3] = ...
+    garchfit(dataGSPCret);
+sigmaGSPC = fints(dataGSPC(:,1),sigmas3','retSP500',...
+    'd','retSP500');
+
+% Create a financial instrument for each index with daily prices
+tsFTSE=fints(dataFTSE(:,1),dataFTSE(:,end),...
+    'FTSE100','d','FTSE100');
+tsN225=fints(dataN225(:,1),dataN225(:,end),'NiKKEI225','d','NiKKEI225');
+tsGSPC=fints(dataGSPC(:,1),dataGSPC(:,end),'SP500','d','SP500');
+
+% Plots the index prices
+figure(1);
+subplot 311;
+plot(tsFTSE)
+xlabel('Time (date)')
+ylabel('Adjusted Close price ($)')
+subplot 312;
+plot(tsGSPC)
+xlabel('Time (date)')
+ylabel('Adjusted Close price ($)')
+subplot 313;
+plot(tsN225)
+xlabel('Time (date)')
+ylabel('Adjusted Close price ($)')
+yt = get(gca,'YTick');
+set(gca,'YTickLabel', sprintf('%.0f|',yt))
+
+% Plot the returns and GARCH
+figure(2);
+subplot 311;
+hold on;
+plot(retFTSE);
+plot(sigmaFTSE);
+hold off;
+subplot 312;
+hold on;
+plot(retN225);
+plot(sigmaN225);
+hold off;
+subplot 313;
+hold on;
+plot(retGSPC);
+plot(sigmaGSPC);
+hold off;

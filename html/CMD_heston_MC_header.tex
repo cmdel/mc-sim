@@ -1,0 +1,66 @@
+
+    
+\section*{Monte Carlo Simulation of the Heston Model}
+
+\begin{par}
+Calculate the value of a European call vanilla option using the Heston model for stochastic volatility
+\end{par} \vspace{1em}
+
+\subsection*{Contents}
+
+\begin{itemize}
+\setlength{\itemsep}{-1ex}
+   \item USAGE
+   \item INPUTS
+   \item OUPUTS
+   \item REFERENCES
+   \item ATTRIBUTION
+\end{itemize}
+
+
+\subsection*{USAGE}
+
+\begin{par}
+[call,std\_err]=MCheston(So, r, V0, xi, theta, kappa, K, Maturity,                 NoSteps, NoPaths)
+\end{par} \vspace{1em}
+
+
+\subsection*{INPUTS}
+
+\begin{verbatim}S0     - Current price of the underlying asset.
+r      - Annualized continuously compounded risk-free rate of return
+         over the life of the option, expressed as a positive decimal
+         number.
+q      - Annualized continuously compounded yield rate\end{verbatim}
+\begin{verbatim}V0     - Current variance of the underlying asset
+xi     - volatility of volatility
+theta  - long-term mean
+kappa  - rate of mean-reversion\end{verbatim}
+\begin{verbatim}strike      - Vector of strike prices of the option
+Maturity    - Time to expiration of the option, expressed in years.
+NoSteps     - Number of time steps per path
+NoPaths     - Number of paths (Monte-Carlo simulations)\end{verbatim}
+
+
+\subsection*{OUPUTS}
+
+\begin{verbatim}call\_prices     - Prices (i.e., value) of a vector of European call options.
+std\_err         - Standard deviation of the error due to the Monte-Carlo
+                  simulation:
+                  (std\_err = std(sample)/sqrt(length(sample)))\end{verbatim}
+
+
+\subsection*{REFERENCES}
+
+\begin{par}
+[AN06] Andersen, Leif. 2006. “Efficient Simulation of the Heston Stochastic Volatility Model 1 Introduction.”
+\end{par} \vspace{1em}
+
+
+\subsection*{ATTRIBUTION}
+
+\begin{par}
+Christos  Delivorias The University of Edinburgh August 2012
+\end{par} \vspace{1em}
+
+

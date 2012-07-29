@@ -1,0 +1,13 @@
+function [quasi, irefOut, ifail] = GenerateUniformQuasiNAG(n, genid)
+% Generate Quasi-random
+% Uniform variates
+
+genid                            = int64(genid);
+idim                             = int64(1);  % On Uv for the QEvariance
+iskip                            = int64(1000);
+
+rcord                            = int64(1);
+
+[iref,  ifail]             = g05yl(genid, idim, iskip);
+
+[quasi, iref, ifail]             = g05ym(int64(n), rcord, iref);

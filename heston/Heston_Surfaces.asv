@@ -1,0 +1,129 @@
+% Test of different implementations
+%
+%   dS = \mu S dt + \sqrt(v_t) S dW_t'
+%   dv  = kappa (theta - v_t) dt + xi \sqrt(v_t) dW_t''
+%
+addpath('Heston')
+clc
+clear all
+close all
+format short
+
+
+
+start = cputime;
+points=21;
+csv = csvread('data.csv');
+size = size(csv);
+scenarios = nan(size(2),1);
+
+
+% for line=1:size(1)
+%     fprintf('Begin Scenario %g....\n\n',line);
+%     %Price
+%     S=linspace(csv(line,1)-0.5*csv(line,1),csv(line,1)+0.5*csv(line,1),points);
+%     K=csv(line,2);
+%     r=csv(line,3);
+%     T=linspace(csv(line,4)-0.5*csv(line,4),csv(line,4)+0.5*csv(line,4),points);
+%     V0=csv(line,5);
+%     %Stochastic Var
+%     theta=csv(line,6);
+%     kappa=csv(line,7);
+%     xi=csv(line,8);
+%     rho=csv(line,9);
+%     lambda=csv(line,10);
+%     M=1000; N=csv(line,11);  % monte carlo settings
+%     HC = nan(points,points);
+%     for x = 1:points
+%         for y = 1:points
+%             HC(x,y) = HestonCall(S(x),K,r,xi,T(y),V0,kappa,theta,lambda,rho);
+%             HCQ(x,y) = HestonCallQuad(kappa,theta,xi,rho,V0,r,T(y),S(x),K);
+%             Christos(x,y) = hestonChristos(T(y),S(x),K,V0,theta,kappa,xi,rho,lambda,r);
+%             FFT(x,y) = HestonFFTVanilla(1,S(x),K,T(y),r,r,kappa,theta,xi,rho,V0);
+%             CMC(x,y) = Heston(S(x), r, V0, xi, theta, kappa, K, T(y), M, N);
+%             BS(x,y) = BSCall(S(x),K,r,V0,T(y));
+%         end
+%     end
+%     [spot mat] = meshgrid(S,T);
+%     subplot 321;
+%     annotation('textbox', [0 0.9 1 0.1], ...
+%     'String', 'Inputs Scenario 1', ...
+%     'EdgeColor', 'none', ...
+%     'HorizontalAlignment', 'center','FontSize',24)
+%     surf(mat,spot,HC),xlabel('Maturity(years)'),ylabel('Spot Price'), ...
+%         title({'Strike Price = 100'; 'Pricer HC'}, 'Color', 'b',...
+%         'FontSize',14,'FontName','Palatino'),zlabel('Call option Price');
+%     subplot 322;
+%     surf(mat,spot,HCQ),xlabel('Maturity(years)'),ylabel('Spot Price'), ...
+%         title({'Strike Price = 100'; 'Pricer HCQ'}, 'Color', 'b',...
+%         'FontSize',14,'FontName','Palatino'),zlabel('Call option Price');
+%     subplot 323;
+%     surf(mat,spot,Christos),xlabel('Maturity(years)'),ylabel('Spot Price'), ...
+%         title({'Strike Price = 100'; 'Pricer Christos'}, 'Color', 'b',...
+%         'FontSize',14,'FontName','Palatino'),zlabel('Call option Price');
+%     subplot 324;
+%     surf(mat,spot,FFT),xlabel('Maturity(years)'),ylabel('Spot Price'), ...
+%         title({'Strike Price = 100'; 'Pricer FFT'}, 'Color', 'b',...
+%         'FontSize',14,'FontName','Palatino'),zlabel('Call option Price');
+%     subplot 325;
+%     surf(mat,spot,CMC),xlabel('Maturity(years)'),ylabel('Spot Price'), ...
+%         title({'Strike Price = 100'; 'Pricer CMC'}, 'Color', 'b',...
+%         'FontSize',14,'FontName','Palatino'),zlabel('Call option Price');
+%     subplot 326;
+%     surf(mat,spot,BS),xlabel('Maturity(years)'),ylabel('Spot Price'), ...
+%         title({'Strike Price = 100'; 'Pricer BS'}, 'Color', 'b',...
+%         'FontSize',14,'FontName','Palatino'),zlabel('Call option Price');
+%     fprintf('Finished Scenario %g....\n\n',line);
+%     pause
+% end
+
+cloudfor line=1:size(1)
+%cf:stepsperworker=2
+    fprintf('Begin Scenario %g....\n\n',line);
+    %Price
+    S=linspace(csv(line,1)-0.8*csv(line,1),csv(line,1)+0.8*csv(line,1),points);
+    K=csv(line,2);
+    r=csv(line,3);
+    T=csv(line,4);
+    V0=csv(line,5);
+    %Stochastic Var
+    theta=csv(line,6);
+    kappa=csv(line,7);
+    xi=csv(line,8);
+    rho=csv(line,9);
+    lambda=csv(line,10);
+    M=1000; N=csv(line,11);  % monte carlo settings
+    cloudfor y = 1:points 
+        HC(y) = HestonCall(S(y),K,r,xi,T,V0,kappa,theta,lambda,rho);
+        HCQ(y) = HestonCallQuad(kappa,theta,xi,rho,V0,r,T,S(y),K);
+        Christos(y) = hestonCMD(T,S(y),K,V0,theta,kappa,xi,rho,lambda,r);
+        FFT(y) = HestonFFTVanilla(1,S(y),K,T,r,r,kappa,theta,xi,rho,V0);
+        CMC(y) = Heston(S(y), r, V0, xi, theta, kappa, K, T, M, N);
+        BS(y) = BSCall(S(y),K,r,V0,T);
+    cloudend
+%    subplot(2,1,line);
+%    annotation('textbox', [0 0.9 1 0.1], ...
+%    'String', 'Inputs Scenario 1', ...
+%    'EdgeColor', 'none', ...
+%    'HorizontalAlignment', 'center','FontSize',24)
+    MaxMC = [0.0 0.0 0.0 0.003 0.007 0.058 0.291 0.979 2.776 5.734 10.182 15.819 22.211 30.012 37.282 45.113 52.777 60.841 68.507 76.651 83.557];
+    figure(line);
+    plot(S, HC,'-s','Color','r')
+    title(gca,['Call Option prices for the Heston models and maturity T (Years) = ',num2str(T)]);
+    hold on
+    plot(S, HCQ,'-x','Color','b')
+    plot(S, FFT,'-*','Color','m')
+    plot(S, CMC,'-d','Color','k')
+    plot(S, BS,'--','Color','c')
+    if line == 1
+        plot(S, Christos,'-o','Color','g')
+        plot(S, MaxMC,'-p','Color','c')
+    end 
+    ylabel('Call Option Price ($)');
+    xlabel('Underlying price S ($)');
+    legend('First order Sums integration','Adaptive Lobatto quadrature integration','Fast Fourrier Transform','Monte Carlo-10000 paths','Black-Scholes','Gauss-Legendre integration','MaxMC-10000 paths','MaxMC-10^6 paths','Location','NorthWest')
+    hold off
+cloudend
+% Time-keeping
+Time = cputime - start;
+fprintf('Total CPU time: %g secs\n\n',Time);
