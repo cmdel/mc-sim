@@ -2,31 +2,7 @@ function [call,std_err, V, S, Payoff]=CMD_heston_MC(S0, rho, V0, xi, theta, kapp
 % Time granulation
 dt = T/steps ;
 genid = 3;  % 1,2 = Sobol, 3 = Neidereitter, 4 = Faure
-%Z = zeros(2*steps,1);
-%Uv = zeros(2*steps,1);
-% Memory pre-caching
-% Pre-cache Normal(0,1) variates
-if NAG
-		if Quasi
-			[Z, iref, ifail] = CMD_Normal_Quasi_NAG(0,1,2*steps,paths,genid) ;  % Create the N(0,1) with NAG
-			Z = Z';
-			Uv = CMD_Uniform_Quasi_NAG(steps, genid) ;
-		else
-			% TODO fix the normal NAG variates
-			for p = 1:paths
-				Z = [Z; CMD_Normal_NAG(0,1,2*steps,genid)];
-				Uv =[Uv; CMD_Uniform_NAG(steps,genid)]; 	
-			end
-		end
-	else
-		Z = normrnd(0,1,paths,2*steps)	;				 % Create N(0,1) with Matlab
-		Uv = rand(1,steps);
-	end
-size(Z);
-Zn1 = Z(:,1:steps);			% Split the variates for the two Zn that are required
-Zn2 = Z(:,steps+1:end);     % Split the variates for the two Zn that are required
-size(Zn1);
-size(Zn2);
+
 disp('.')
 
 % Pre-cache result arrays
