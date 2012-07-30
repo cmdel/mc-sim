@@ -14,7 +14,7 @@ NoPaths=10000;
 lambda=0.0;
 r=0.02;
 q=0.02;
-NAG=true; % Set this to "true" to use the NAG libraries 
+NAG=false; % Set this to "true" to use the NAG libraries 
 		   % for Uniform and Normal quasi-random variates
 % Purturbations of the underlying's price
 purt=21;
@@ -34,8 +34,8 @@ fprintf('The standard error is: %g\n',mean(err));
 t=floor(rand(1)*100);
 figure(t)
 time=linspace(0,T,NoSteps+1);
-%gran=NoPaths/5;
-gran=1;
+gran=NoPaths/5;
+%gran=1;
 subplot 321;
 plot(time,Si(1:gran:end,:));
 ylabel('Stock price');
