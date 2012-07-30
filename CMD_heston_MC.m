@@ -1,8 +1,13 @@
-function [call,std_err, V, S, Payoff]=CMD_heston_MC(S0, rho, V0, xi, theta, kappa, K, T, steps, paths, lambda, r, q, NAG,Quasi)
+function [Payoff, call,std_err, V, S ]=CMD_heston_MC(S0, rho, V0, xi, theta, kappa, K, T, steps, paths, lambda, r, q,NAG)
 % Time granulation
 dt = T/steps ;
 genid = 3;  % 1,2 = Sobol, 3 = Neidereitter, 4 = Faure
+% Init the Quasi-random NAG generator for Normal(0,1) RVs.
+[iref,ifail]=g05yl(int64(genid), int64(1),int64(1000));
+xmean(1:steps)=0;
+sd(1:steps)=1;
 
+% Status output
 disp('.')
 
 % Pre-cache result arrays
@@ -25,12 +30,21 @@ K4 = gamma2*dt*(1-rho^2) ;
 
 % Main Monte Carlo loop
 for pth = 1: paths
+	if NAG
+		[Zn1, iref, ifail]=g05yj(xmean,sd,int64(steps),iref);
+		[Zn2, iref, ifail]=g05yj(xmean,sd,int64(steps),iref);
+		[Uv, iref, ifail] =g05ym(int64(steps),int64(1),iref);
+	else
+		Zn1=randn(1,steps);
+		Zn2=randn(1,steps);
+		Uv=rand(1,steps);
+	end
     for ts = 1:steps
-		V(pth,ts+1) = QEvariance(V(pth,ts), theta, kappa, dt, xi, Zn1(pth,ts), Uv(ts)) ;
+		V(pth,ts+1) = QEvariance(V(pth,ts), theta, kappa, dt, xi, Zn1(ts), Uv(ts));
 		St = S(pth,ts);
 		Vt = V(pth,ts);
 		Vdt = V(pth,ts+1);
-		S(pth,ts+1) = St * exp( K0 + K1*Vt) * exp(K2*Vdt + sqrt(K3*Vt + K4*Vdt)*Zn2(pth,ts)); 
+		S(pth,ts+1) = St * exp( K0 + K1*Vt) * exp(K2*Vdt + sqrt(K3*Vt + K4*Vdt)*Zn2(ts)); 
     end
 	Payoff(pth) = max(S(pth,end)-K,0);
 	C(pth) = S(pth,end);
