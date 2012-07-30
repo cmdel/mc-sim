@@ -1,6 +1,6 @@
 %clc;
 clear all;
-close all;
+%close all;
 So=100;
 rho=-0.2;
 V0=0.04;
@@ -9,14 +9,13 @@ theta=0.04;
 kappa=1.5;
 K=100;
 T=5.0;
-NoSteps=100;
-NoPaths=300;
+NoSteps=500;
+NoPaths=10000;
 lambda=0.0;
 r=0.02;
 q=0.02;
 NAG=true; % Set this to "true" to use the NAG libraries 
 		   % for Uniform and Normal quasi-random variates
-Quasi=true;% Quasi Normal for NAG
 % Purturbations of the underlying's price
 purt=21;
 S=linspace(So-0.8*So,So+0.8*So,purt);
@@ -25,7 +24,7 @@ S=linspace(So-0.8*So,So+0.8*So,purt);
 tic
 % Purturb the underlying price
 for p = 1:purt
-    [mc(p), err(p), V, Si, P(p)] = CMD_heston_MC(S(p),rho,V0,xi,theta,kappa,K,T,NoSteps,NoPaths,lambda,r,q,NAG,Quasi) ;
+    [P(p), mc(p), err(p), V, Si] = CMD_heston_MC(S(p),rho,V0,xi,theta,kappa,K,T,NoSteps,NoPaths,lambda,r,q,NAG);
     HENAG(p) =  s30na('C', K, S(p), T,  xi , kappa, rho, V0, theta, lambda, r, q); 
     deltaHENAG(p) = P(p) - s30na('C', K, S(p), T,  xi , kappa, rho, V0, theta, lambda, r, q);
 end
