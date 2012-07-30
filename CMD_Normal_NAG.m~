@@ -1,6 +1,0 @@
-function [x,iseedOut,ifail] = GenerateNormalNAG(mu,var, n)
-n = int64(n);
-igen = int64(1);
-iseed = [int64(2762543);9324783;42344;742355];
-[igen, iseed] = g05kb(igen,iseed);
-[x,iseedOut,ifail] = g05la(mu,var,n,igen,iseed);
