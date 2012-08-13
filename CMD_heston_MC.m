@@ -1,9 +1,7 @@
 function [Payoff, call,std_err, V, S ]=CMD_heston_MC(S0, rho, V0, xi, theta, kappa, K, T, steps, paths, lambda, r, q,NAG)
 % Time granulation
 dt = T/steps ;
-genid = 3;  % 1,2 = Sobol, 3 = Neidereitter, 4 = Faure
-% Init the Quasi-random NAG generator for Normal(0,1) RVs.
-[iref,ifail]=g05yl(int64(genid), int64(3),int64(1000));
+
 xmean(1:steps)=0;
 sd(1:steps)=1;
 
@@ -28,18 +26,44 @@ K2 = gamma2*dt*(kappa*rho/xi-1/2)+rho/xi ;
 K3 = gamma1*dt*(1-rho^2) ;
 K4 = gamma2*dt*(1-rho^2) ;
 
+
+if (NAG==1 || NAG==2)
+    seed = [int64(1762543)];
+    % genid and subid identify the base generator
+    genid = int64(1);
+    % genid = 3;  % 1,2 = Sobol, 3 = Neidereitter, 4 = Faure
+    % Init the Quasi-random NAG generator for Normal(0,1) RVs.
+    subid =  int64(1);
+    stype = int64(1);   % Owen type scrambling of QRVs. 
+						% 2 for Faure-Tezuka(FT), 3 for Owen and FT  
+    idim = steps*3;
+    iskip = int64(1000);
+    nsdigi = int64(0);
+    [state, ifail] = g05kf(genid, subid, seed);
+    if(NAG==1)
+      [iref, state, ifail] = g05yn(genid, stype, int64(idim), iskip, nsdigi, state);
+    else
+      [iref,ifail]=g05yl(int64(genid), int64(idim),int64(1));
+    end
+	[VA, iref,ifail] = g05ym(int64(paths),int64(idim),iref); % Create 3 URV
+    VA=VA';
+end
+
 % Main Monte Carlo loop
 for pth = 1: paths
-	if NAG
-		[quasi, iref,ifail] = g05ym(int64(steps),int64(3),iref); % Create 3 URV
-		 Zn1 = sqrt(2)*erfinv(2*quasi(:,1)-1); % Calculate N(0,1) with inverse CDF
-		 Zn2 = sqrt(2)*erfinv(2*quasi(:,2)-1);
-		 Uv = quasi(:,3);
+	if (NAG==1 || NAG==2)
+         Uv = VA(1:steps,pth);
+         Zn1 = sqrt(2)*erfinv(2*VA(steps+1:2*steps,pth)-1); % Calculate N(0,1) with inverse CDF
+         Zn2 = sqrt(2)*erfinv(2*VA(steps*2+1:end,pth)-1); % Calculate N(0,1) with inverse CDF
+    elseif(NAG==-1)
+        Zn1=randn(1,steps);
+        Zn2=randn(2,steps);
+		Uv=rand(1,steps);
 	else
 		Zn1=randn(1,steps);
-		%Zn1=[Zn1 -Zn1];
+		Zn1=[Zn1 -Zn1];
 		Zn2=randn(1,steps);
-		%Zn2=[Zn2 -Zn2];
+		Zn2=[Zn2 -Zn2];
 		Uv=rand(1,steps);
 	end
     for ts = 1:steps
@@ -49,11 +73,12 @@ for pth = 1: paths
 		Vdt = V(pth,ts+1);
 		S(pth,ts+1) = St * exp( K0 + K1*Vt) * exp(K2*Vdt + sqrt(K3*Vt + K4*Vdt)*Zn2(ts)); 
     end
-	Payoff(pth) = exp(-r*T)*max(S(pth,end)-K,0);        % Call option
-	C(pth) = S(pth,end);
+	Payoff(pth) = max(S(pth,end)-K,0);        % Call option
+	C(pth) = S(pth,end) - K;
 end
-call = mean(C);
-Payoff = mean(Payoff);
+%TODO Do discounitng!!!!
+call = mean(exp(-r*T).*C);
+Payoff = mean(exp(-r*T).*Payoff);
 std_err = std(C)/sqrt(paths);
 
 
