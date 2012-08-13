@@ -10,14 +10,14 @@ kappa=1.5;
 K=100;
 T=5.0;
 NoSteps=300;
-NoPaths=1000;
+NoPaths=2000;
 lambda=0.0;
 r=0.02;
 q=0.00; % Non divident stock
 NAG=false; % Set this to "true" to use the NAG libraries 
 		   % for Uniform and Normal quasi-random variates
 % Purturbations of the underlying's price
-purt=21;
+purt=11;
 S=linspace(So-0.8*So,So+0.8*So,purt);
 
 % Start the clock
