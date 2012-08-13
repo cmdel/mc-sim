@@ -9,12 +9,12 @@ theta=0.04;
 kappa=1.5;
 K=100;
 T=5.0;
-NoSteps=500;
-NoPaths=2000;
+NoSteps=300;
+NoPaths=1000;
 lambda=0.0;
 r=0.02;
-q=0.02;
-NAG=true; % Set this to "true" to use the NAG libraries 
+q=0.00; % Non divident stock
+NAG=false; % Set this to "true" to use the NAG libraries 
 		   % for Uniform and Normal quasi-random variates
 % Purturbations of the underlying's price
 purt=21;
@@ -29,8 +29,8 @@ for p = 1:purt
     	Vatm = V;
     	Satm = Si;
 	end
-    HENAG(p) =  s30na('C', K, S(p), T,  xi , kappa, rho, V0, theta, lambda, r, q); 
-    deltaHENAG(p) = P(p) - s30na('C', K, S(p), T,  xi , kappa, rho, V0, theta, lambda, r, q);
+    HENAG(p) =  exp(-r*T)*s30na('C', K, S(p), T,  xi , kappa, rho, V0, theta, lambda, r, q); 
+    deltaHENAG(p) = P(p) - exp(-r*T)*s30na('C', K, S(p), T,  xi , kappa, rho, V0, theta, lambda, r, q);
 end
 toc
 % Produce some metrics

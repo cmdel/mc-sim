@@ -36,10 +36,10 @@ for pth = 1: paths
 		 Zn2 = sqrt(2)*erfinv(2*quasi(:,2)-1);
 		 Uv = quasi(:,3);
 	else
-		Zn1=randn(1,steps/2);
-		Zn1=[Zn1 -Zn1];
-		Zn2=randn(1,steps/2);
-		Zn2=[Zn2 -Zn2];
+		Zn1=randn(1,steps);
+		%Zn1=[Zn1 -Zn1];
+		Zn2=randn(1,steps);
+		%Zn2=[Zn2 -Zn2];
 		Uv=rand(1,steps);
 	end
     for ts = 1:steps
@@ -49,7 +49,7 @@ for pth = 1: paths
 		Vdt = V(pth,ts+1);
 		S(pth,ts+1) = St * exp( K0 + K1*Vt) * exp(K2*Vdt + sqrt(K3*Vt + K4*Vdt)*Zn2(ts)); 
     end
-	Payoff(pth) = max(S(pth,end)-K,0);
+	Payoff(pth) = exp(-r*T)*max(S(pth,end)-K,0);        % Call option
 	C(pth) = S(pth,end);
 end
 call = mean(C);
