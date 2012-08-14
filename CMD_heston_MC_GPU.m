@@ -9,7 +9,7 @@ sd(1:steps)=1;
 disp('.')
 
 
-% Assign each worker a different GPU
+% Assign each worker to a different GPU
 spmd
 gpuDevice(labindex);
 end
