@@ -8,6 +8,12 @@ sd(1:steps)=1;
 % Status output
 disp('.')
 
+
+% Assign each worker a different GPU
+spmd
+gpuDevice(labindex);
+end
+
 % Pre-cache result arrays
 S = parallel.gpu.GPUArray.zeros(paths,steps+1) ;
 S(:,1) = S0 ; % add the initial price
@@ -26,6 +32,8 @@ K2 = gamma2*dt*(kappa*rho/xi-1/2)+rho/xi ;
 K3 = gamma1*dt*(1-rho^2) ;
 K4 = gamma2*dt*(1-rho^2) ;
 
+% Set the seed for the RNG in MATLAB
+seed = 1234;
 
 if (NAG==1 || NAG==2)
     seed = [int64(1762543)];
@@ -59,6 +67,7 @@ parfor pth = 1: paths
          Zn2 = gpuArray(Zn2);	% ibid.
 		 Uv  = gpuArray(Uv);
     elseif(NAG==-1)
+		 parallel.gpu.GPUArray.rng(seed);
 		 Zn1 = parallel.gpu.GPUArray.randn(steps,1);
 		 Zn2 = parallel.gpu.GPUArray.randn(steps,1);
 		 Uv  = parallel.gpu.GPUArray.rand(steps,1);
