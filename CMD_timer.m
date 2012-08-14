@@ -12,7 +12,7 @@ S=100;
 K=100;
 T=5.0;
 NoSteps=T*250;  % This is to approximate the trading days in a year for the maturity
-NoPaths=8000;
+NoPaths=128000;
 lambda=0.0;
 r=0.05;
 q=0.00; % Non divident stock
@@ -28,3 +28,4 @@ tic;
 t=toc;
 
 fprintf('Time: %g. Error: %g\n', t,err);
+h = msgbox('Finished','Finished', 'help');
