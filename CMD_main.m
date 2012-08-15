@@ -1,6 +1,6 @@
 %clc;
 clear all;
-%close all;
+close all;
 So=100;
 rho=-0.2;
 V0=0.04;
@@ -9,8 +9,8 @@ theta=0.04;
 kappa=1.5;
 K=100;
 T=5.0;
-NoSteps=T*250;  % This is to approximate the trading days in a year for the maturity
-NoPaths=2000;
+NoSteps=250;  % This is to approximate the trading days in a year for the maturity
+NoPaths=500;
 lambda=0.0;
 r=0.05;
 q=0.00; % Non divident stock
@@ -44,29 +44,29 @@ figure(t)
 time=linspace(0,T,NoSteps+1);
 gran=NoPaths/5;
 gran=1;
-subplot 321;
+subplot 221;
 plot(time,Satm(1:gran:end,:));
 ylabel('Stock price');
 xlabel('Time'); 
-set(gcf, 'Position', get(0,'Screensize'))
+set(gcf, 'Position', get(0,'Screensize')) % Maximise screen
 ylabel('Call Option Price ($)');
 
-subplot 322;
+subplot 222;
 plot(time,Vatm(1:gran:end,:));
 ylabel('Variance');
 xlabel('Time');
 
-subplot 324;
+subplot 224;
 plot(S,err);
 ylabel('Standard error');
 xlabel('Underlying price S ($)');
 
-subplot 325;
-bar(S,deltaHENAG,'r');
-ylabel('Delta to Heston ( MC - NAG )');
-xlabel('Underlying price S ($)');
+%subplot 225;
+%bar(S,deltaHENAG,'r');
+%ylabel('Delta to Heston ( MC - NAG )');
+%xlabel('Underlying price S ($)');
 
-subplot 323;
+subplot 223;
 plot(S,P, 'Color', 'r');
 hold on
 plot(S,HENAG);
