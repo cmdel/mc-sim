@@ -1,4 +1,4 @@
-function [Payoff, call,std_err, V, S ]=CMD_heston_MC(S0, rho, V0, xi, theta, kappa, K, T, steps, paths, lambda, r, q,NAG)
+function [Payoff, call,std_err, V, S ]=CMD_heston_MC_GRID(S0, rho, V0, xi, theta, kappa, K, T, steps, paths, lambda, r, q,NAG)
 % Time granulation
 dt = T/steps ;
 
@@ -51,6 +51,7 @@ end
 
 % Main Monte Carlo loop
 cloudfor pth = 1: paths
+%cf:force:largedata
 	if (NAG==1 || NAG==2)
          Uv = VA(1:steps,pth);
          Zn1 = sqrt(2)*erfinv(2*VA(steps+1:2*steps,pth)-1); % Calculate N(0,1) with inverse CDF
@@ -80,7 +81,7 @@ cloudend
 call = mean(C);
 Payoff = exp(-r*T)* mean(Payoff);
 std_err = std(C)/sqrt(paths);
-
+end
 
 
 % Internal Function for the variance
@@ -108,4 +109,5 @@ else
 		PSIu=log((1-p)/(1-Uv))/beta ;
 	end
 	Vdt=PSIu ;
+end
 end
