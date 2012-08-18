@@ -10,9 +10,9 @@ kappa=1.5;
 K=100;
 T=5.0;
 NoSteps=200;  % This is to approximate the trading days in a year for the maturity
-NoPaths=500;
+NoPaths=50;
 lambda=0.0;
-r=0.05;
+r=0.00;
 q=0.00; % Non divident stock
 NAG=1;     % Set this to the following values to use the NAG libraries 
 		   % for Uniform and Normal quasi-random variates
@@ -26,7 +26,7 @@ S=linspace(So-0.8*So,So+0.8*So,purt);
 %S=[0.99 1 1.01]
 % Start the clock
 tic
-target = 21;
+target = 10;
 % Purturb the underlying price
 for p = 1:purt
     [P(p), mc(p), err(p,:), V, Si] = CMD_heston_MC(S(p),rho,V0,xi,theta,kappa,K,T,NoSteps,NoPaths,lambda,r,q,NAG);
@@ -42,17 +42,17 @@ toc
 %% Produce some metrics
 fprintf('The standard error is: %g\n',mean(err));
 % Create the confidence intervals
-alpha = 0.05; % 100-alpha := confidence interbal percientile
+alpha = 0.01; % 100-alpha := confidence interbal percientile
 Savg = mean(Satm);
 errors = [zeros(size(errors,1),1) errors];
-err_upper = Savg + norminv(alpha,0,1).*errors(target,:);
-err_lower = Savg - norminv(alpha,0,1).*errors(target,:);
+err_upper = Savg + norminv(alpha,0,1)*errors(target,:);
+err_lower = Savg - norminv(alpha,0,1)*errors(target,:);
 % Create random number for the name of the image to have multiple figures
 t=floor(rand(1)*100);
 figure(t)
 time=linspace(0,T,NoSteps+1);
 gran=NoPaths/5;
-%gran=1;
+gran=1;
 subplot 221;
 hold on
 plot(time,Satm(1:gran:end,:));
@@ -60,8 +60,8 @@ ylabel('Stock price');
 xlabel('Time'); 
 set(gcf, 'Position', get(0,'Screensize')) % Maximise screen
 ylabel('Call Option Price ($)');
-plot(time,err_upper, '--');
-plot(time,err_lower, '--'); 
+plot(time,err_upper, '-.b', 'LineWidth',2);
+plot(time,err_lower, '-.b', 'LineWidth',2); 
 hold off
 
 subplot 222;
