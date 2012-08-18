@@ -79,7 +79,11 @@ end
 
 call = mean(C);
 Payoff = exp(-r*T)* mean(Payoff);
-std_err = std(C)/sqrt(paths);
+%std_err = std(C)/sqrt(paths);
+for ts = 1:steps
+	std_err(ts)=std(S(:,ts))/sqrt(paths);
+end
+
 
 
 

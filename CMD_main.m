@@ -9,7 +9,7 @@ theta=0.04;
 kappa=1.5;
 K=100;
 T=5.0;
-NoSteps=250;  % This is to approximate the trading days in a year for the maturity
+NoSteps=200;  % This is to approximate the trading days in a year for the maturity
 NoPaths=500;
 lambda=0.0;
 r=0.05;
@@ -21,17 +21,19 @@ NAG=1;     % Set this to the following values to use the NAG libraries
 		   % NAG = 1  Use NAG libraries for scrambled Quasi-random variates
 		   % NAG = 2  USe NAG libraries for unscrambled
 % Purturbations of the underlying's price
-purt=21;
+purt=10;
 S=linspace(So-0.8*So,So+0.8*So,purt);
 %S=[0.99 1 1.01]
 % Start the clock
 tic
+target = 21;
 % Purturb the underlying price
 for p = 1:purt
-    [P(p), mc(p), err(p), V, Si] = CMD_heston_MC(S(p),rho,V0,xi,theta,kappa,K,T,NoSteps,NoPaths,lambda,r,q,NAG);
-    if p==10 % which prices to show on the plot
+    [P(p), mc(p), err(p,:), V, Si] = CMD_heston_MC(S(p),rho,V0,xi,theta,kappa,K,T,NoSteps,NoPaths,lambda,r,q,NAG);
+    if p==target% which prices to show on the plot
     	Vatm = V;
     	Satm = Si;
+    	errors = err(:, :);
 	end
     HENAG(p) =  s30na('C', K, S(p), T,  xi , kappa, rho, V0, theta, lambda, r, q); 
     deltaHENAG(p) = P(p) -HENAG(p);
@@ -39,17 +41,28 @@ end
 toc
 %% Produce some metrics
 fprintf('The standard error is: %g\n',mean(err));
+% Create the confidence intervals
+alpha = 0.05; % 100-alpha := confidence interbal percientile
+Savg = mean(Satm);
+errors = [zeros(size(errors,1),1) errors];
+err_upper = Savg + norminv(alpha,0,1).*errors(target,:);
+err_lower = Savg - norminv(alpha,0,1).*errors(target,:);
+% Create random number for the name of the image to have multiple figures
 t=floor(rand(1)*100);
 figure(t)
 time=linspace(0,T,NoSteps+1);
 gran=NoPaths/5;
-gran=1;
+%gran=1;
 subplot 221;
+hold on
 plot(time,Satm(1:gran:end,:));
 ylabel('Stock price');
 xlabel('Time'); 
 set(gcf, 'Position', get(0,'Screensize')) % Maximise screen
 ylabel('Call Option Price ($)');
+plot(time,err_upper, '--');
+plot(time,err_lower, '--'); 
+hold off
 
 subplot 222;
 plot(time,Vatm(1:gran:end,:));
@@ -60,7 +73,6 @@ subplot 224;
 plot(S,err);
 ylabel('Standard error');
 xlabel('Underlying price S ($)');
-
 %subplot 225;
 %bar(S,deltaHENAG,'r');
 %ylabel('Delta to Heston ( MC - NAG )');
