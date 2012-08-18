@@ -1,8 +1,7 @@
 %% 
-% Implementation for the Techila grid nodes
-% This was run on a LARGE instance of the Windows Azure cloud
-% with 4 workers
-function [Payoff, call,std_err, V, S ]=CMD_heston_MC_GRID(S0, rho, V0, xi, theta, kappa, K, T, steps, paths, lambda, r, q,NAG)
+% Implementation for multiple GPUs
+%
+function [Payoff, call,std_err, V, S ]=CMD_heston_GPU(S0, rho, V0, xi, theta, kappa, K, T, steps, paths, lambda, r, q,NAG)
 % Time granulation
 dt = T/steps ;
 
@@ -12,13 +11,19 @@ sd(1:steps)=1;
 % Status output
 disp('.')
 
+
+% Assign each worker to a different GPU
+spmd
+gpuDevice(labindex);
+end
+
 % Pre-cache result arrays
-S = zeros(paths,steps+1) ;
+S = parallel.gpu.GPUArray.zeros(paths,steps+1) ;
 S(:,1) = S0 ; % add the initial price
-V = zeros(paths,steps+1) ;
+V = parallel.gpu.GPUArray.zeros(paths,steps+1) ;
 V(:,1) = V0 ; % add the initial var
-C = zeros(paths,1);
-Payoff = zeros(paths,1);
+C = parallel.gpu.GPUArray.zeros(paths,1);
+Payoff = parallel.gpu.GPUArray.zeros(paths,1);
 
 gamma1=1/2 ; % See [AN06] for more options
 gamma2=1/2 ; % See [AN06] for more options 
@@ -30,7 +35,9 @@ K2 = gamma2*dt*(kappa*rho/xi-1/2)+rho/xi ;
 K3 = gamma1*dt*(1-rho^2) ;
 K4 = gamma2*dt*(1-rho^2) ;
 
-
+% Set the seed for the RNG in MATLAB
+seed = 1234;
+VA=[];
 if (NAG==1 || NAG==2)
     seed = [int64(1762543)];
     % genid and subid identify the base generator
@@ -47,23 +54,27 @@ if (NAG==1 || NAG==2)
     if(NAG==1)
       [iref, state, ifail] = g05yn(genid, stype, int64(idim), iskip, nsdigi, state);
     else
-      [iref,ifail]=g05yl(int32(genid), int64(idim),int32(1));
+      [iref,ifail]=g05yl(int64(genid), int64(idim),int64(1));
     end
 	[VA, iref,ifail] = g05ym(int64(paths),int64(idim),iref); % Create 3 URV
     VA=VA';
 end
 
+
 % Main Monte Carlo loop
-cloudfor pth = 1: paths
-%cf:force:largedata
+parfor pth = 1: paths
 	if (NAG==1 || NAG==2)
          Uv = VA(1:steps,pth);
          Zn1 = sqrt(2)*erfinv(2*VA(steps+1:2*steps,pth)-1); % Calculate N(0,1) with inverse CDF
          Zn2 = sqrt(2)*erfinv(2*VA(steps*2+1:end,pth)-1); % Calculate N(0,1) with inverse CDF
+         Zn1 = gpuArray(Zn1);	% Transfer RVs to the GPU
+         Zn2 = gpuArray(Zn2);	% ibid.
+		 Uv  = gpuArray(Uv);
     elseif(NAG==-1)
-        Zn1=randn(1,steps);
-        Zn2=randn(2,steps);
-		Uv=rand(1,steps);
+		 %parallel.gpu.GPUArray.rng(seed);
+		 Zn1 = parallel.gpu.GPUArray.randn(steps,1);
+		 Zn2 = parallel.gpu.GPUArray.randn(steps,1);
+		 Uv  = parallel.gpu.GPUArray.rand(steps,1);
 	else
 		Zn1=randn(1,steps/2);
 		Zn1=[Zn1 -Zn1];
@@ -72,15 +83,14 @@ cloudfor pth = 1: paths
 		Uv=rand(1,steps);
 	end
     for ts = 1:steps
-		V(pth,ts+1) = QEvariance(V(pth,ts), theta, kappa, dt, xi, Zn1(ts), Uv(ts));
-		St = S(pth,ts);
-		Vt = V(pth,ts);
-		Vdt = V(pth,ts+1);
-		S(pth,ts+1) = St * exp(r*dt+ K0 + K1*Vt) * exp(K2*Vdt + sqrt(K3*Vt + K4*Vdt)*Zn2(ts)); 
+        Vt = V(pth);
+        V(pth) = QEvariance(V(pth), theta, kappa, dt, xi, Zn1(ts), Uv(ts));
+        Vdt = V(pth);
+        S(pth) = S(pth) * exp(r*dt+ K0 + K1*Vt) * exp(K2*Vdt + sqrt(K3*Vt + K4*Vdt)*Zn2(ts)); 
     end
-	Payoff(pth) = max(S(pth,end)-K,0);        % Call option
-	C(pth) = S(pth,end) - K;
-cloudend
+    Payoff(pth) = max(S(pth)-K,0);        % Call option
+    C(pth) = S(pth) - K;
+end
 
 call = mean(C);
 Payoff = exp(-r*T)* mean(Payoff);
@@ -97,13 +107,14 @@ A2=(xi^2*A1)/kappa ;
 A3=1-A1 ;
 m=theta+(Vt-theta)*A1 ;
 s_2=Vt*A2*A3+(theta*xi^2)*A3^2/(2*kappa) ;
-psi=s_2/m^2 ;
+psi=s_2/(m*m) ;
 psi_c=1.5 ; % As mentioned by Andersen
 
 if psi<=psi_c
 	b_2=2/psi-1+sqrt(2/psi)*sqrt(2/psi-1) ;
 	a=m/(1+b_2) ;
-    Vdt=a*(sqrt(b_2)+Zn)^2 ;
+    tmp=(sqrt(b_2)+Zn);
+    Vdt=a*tmp*tmp ;
 else
 	p=(psi-1)/(psi+1) ;
 	beta= (1-p)/m ;
