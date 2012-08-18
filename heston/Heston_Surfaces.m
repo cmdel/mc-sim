@@ -35,8 +35,7 @@ for line=1:size(1)
     paths=csv(line,13);  % monte carlo settings
     for y = 1:points 
         HE_NAG(y) = s30na('C' , K , S(y) , T , xi , kappa, rho, V0, theta, lambda, r, q);
-        HE_CMD(y) = hestonCMD(T,S(y),K,V0,theta,kappa,xi,rho,lambda,r);
-        HE_MC_CMD(y) = CMD_heston_MC(S(y),rho,V0,xi,theta, kappa, K, T, steps, paths, lambda, r, q);
+        HE_MC_CMD(y) = CMD_heston_MC(S(y),rho,V0,xi,theta, kappa, K, T, steps, paths, lambda, r, q, 1);
         BS(y) = BSCall(S(y),K,r,V0,T);
         BS_C(y) = s30aa('C' , K , S(y) , T , V0 , r , q);
     end
@@ -47,7 +46,6 @@ for line=1:size(1)
     hold on
     plot(S, BS_C,'-d','Color','k')
     plot(S, BS,'--','Color','c')
-    plot(S, HE_CMD,'-o','Color','b')
     plot(S, HE_MC_CMD,'-d','Color','m')
     if line == 1
         plot(S, MaxMC,'-p','Color','y')
@@ -55,7 +53,7 @@ for line=1:size(1)
     ylabel('Call Option Price ($)');
     xlabel('Underlying price S ($)');
     ylim([-10 130]);
-    legend('Heston - NAG','Black-Scholes - NAG','Black-Scholes - Analytical','Heston - Gauss-Legendre integration','Heston - Quasi-MC with QE','MaxMC-10^6 paths','Location','NorthWest')
+    legend('Heston - NAG','Black-Scholes - NAG','Black-Scholes - Analytical','Heston - Quasi-MC with QE','MaxMC-10^6 paths','Location','NorthWest')
     hold off
 end
 
