@@ -1,6 +1,3 @@
-%% 
-% Implementation for multiple GPUs
-%
 function [Payoff, call,std_err, V, S ]=CMD_heston_GPU(S0, rho, V0, xi, theta, kappa, K, T, steps, paths, lambda, r, q,NAG)
 % Time granulation
 dt = T/steps ;
@@ -8,8 +5,11 @@ dt = T/steps ;
 xmean(1:steps)=0;
 sd(1:steps)=1;
 
-% Status output
-disp('.')
+Payoff=[];
+call=[];
+std_err=[];
+V=[];
+S=[];
 
 
 % Assign each worker to a different GPU
@@ -18,13 +18,16 @@ gpuDevice(labindex);
 end
 
 % Pre-cache result arrays
-S = parallel.gpu.GPUArray.zeros(paths,steps+1) ;
+S = parallel.gpu.GPUArray.zeros(paths,1) ;
 S(:,1) = S0 ; % add the initial price
-V = parallel.gpu.GPUArray.zeros(paths,steps+1) ;
+V = parallel.gpu.GPUArray.zeros(paths,1) ;
 V(:,1) = V0 ; % add the initial var
 C = parallel.gpu.GPUArray.zeros(paths,1);
 Payoff = parallel.gpu.GPUArray.zeros(paths,1);
 
+
+
+disp('Pre-cache arrays ready')
 gamma1=1/2 ; % See [AN06] for more options
 gamma2=1/2 ; % See [AN06] for more options 
  
@@ -35,7 +38,10 @@ K2 = gamma2*dt*(kappa*rho/xi-1/2)+rho/xi ;
 K3 = gamma1*dt*(1-rho^2) ;
 K4 = gamma2*dt*(1-rho^2) ;
 
+disp('Kappas ready')
 % Set the seed for the RNG in MATLAB
+
+
 seed = 1234;
 VA=[];
 if (NAG==1 || NAG==2)
@@ -59,46 +65,57 @@ if (NAG==1 || NAG==2)
 	[VA, iref,ifail] = g05ym(int64(paths),int64(idim),iref); % Create 3 URV
     VA=VA';
 end
-
+disp('RNG ready')
 
 % Main Monte Carlo loop
-parfor pth = 1: paths
-	if (NAG==1 || NAG==2)
-         Uv = VA(1:steps,pth);
-         Zn1 = sqrt(2)*erfinv(2*VA(steps+1:2*steps,pth)-1); % Calculate N(0,1) with inverse CDF
-         Zn2 = sqrt(2)*erfinv(2*VA(steps*2+1:end,pth)-1); % Calculate N(0,1) with inverse CDF
-         Zn1 = gpuArray(Zn1);	% Transfer RVs to the GPU
-         Zn2 = gpuArray(Zn2);	% ibid.
-		 Uv  = gpuArray(Uv);
-    elseif(NAG==-1)
-		 %parallel.gpu.GPUArray.rng(seed);
-		 Zn1 = parallel.gpu.GPUArray.randn(steps,1);
-		 Zn2 = parallel.gpu.GPUArray.randn(steps,1);
-		 Uv  = parallel.gpu.GPUArray.rand(steps,1);
-	else
-		Zn1=randn(1,steps/2);
-		Zn1=[Zn1 -Zn1];
-		Zn2=randn(1,steps/2);
-		Zn2=[Zn2 -Zn2];
-		Uv=rand(1,steps);
-	end
-    for ts = 1:steps
-        Vt = V(pth);
-        V(pth) = QEvariance(V(pth), theta, kappa, dt, xi, Zn1(ts), Uv(ts));
-        Vdt = V(pth);
-        S(pth) = S(pth) * exp(r*dt+ K0 + K1*Vt) * exp(K2*Vdt + sqrt(K3*Vt + K4*Vdt)*Zn2(ts)); 
-    end
-    Payoff(pth) = max(S(pth)-K,0);        % Call option
-    C(pth) = S(pth) - K;
-end
 
+for step = 1: steps
+    Zn1 = parallel.gpu.GPUArray.randn(paths,1);
+	Zn2 = parallel.gpu.GPUArray.randn(paths,1);
+	Uv  = parallel.gpu.GPUArray.rand(paths,1);
+    
+    [S,V]=arrayfun(@myGPUFun, Zn1,Zn2,Uv,S,V,theta, kappa, dt, xi,r,K0,K1,K2,K3,K4);
+
+end
+disp('.')
+Payoff = max(S-K,0);        % Call option
+C = S - K;
 call = mean(C);
 Payoff = exp(-r*T)* mean(Payoff);
 std_err = std(C)/sqrt(paths);
 end
 
+%% Internal function for the parallelisation on the GPU
+%
+function [S,V] = myGPUFun(Zn1,Zn2,Uv,S,V,theta, kappa, dt, xi,r,K0,K1,K2,K3,K4)
+ Vt=V;
+ 
+ A1=exp(-kappa*dt) ;
+ 
+ m=theta+(Vt-theta)*A1 ;
+ s_2=Vt*((xi^2*A1)/kappa)*(1-A1)+(theta*xi^2)*(1-A1)^2/(2*kappa) ;
+ psi=s_2./(m.*m) ;
+ psi_c=1.5 ; % As mentioned by Andersen
+ IDX=(psi<=psi_c);
+ 
+ b_2=2/psi-1+sqrt(2/psi)*sqrt(2/psi-1) ;
+ a=m/(1+b_2) ;
+ tmp=(sqrt(b_2)+Zn1);
+ VTMP1=a*tmp*tmp ;
+  
+  p=(psi-1)./(psi+1) ;
+  beta= (1-p)./m ;
+  
+  VTMP2=(log((1-p)./(1-Uv))./beta).*(Uv>p) ;
+  V=VTMP1.*IDX+VTMP2.*(1-IDX);
+  
+ 
+ 
+ S = S .* exp(r*dt+ K0 + K1*Vt+K2*V + sqrt(K3*Vt + K4*V)*Zn2);
+end
 
-% Internal Function for the variance
+
+%% Internal Function for the variance
 function [Vdt]=QEvariance(Vt,theta,kappa,dt,xi, Zn, Uv) 
 % Descritise the variance using the QE Scheme by Andersen [AN06]
 % Strongly reflect at 0. Ensures no negative variance values.
