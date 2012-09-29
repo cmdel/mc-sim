@@ -20,12 +20,13 @@ NAG=1;     % Set this to the following values to use the NAG libraries
 		   % for Uniform and Normal quasi-random variates
 		   % NAG = -1 Disable NAG, use MATLAB's RV generator
 		   % NAG = 0  Antithetic variance reduction
-		   % NAG = 1  Use NAG libraries for scrambled Qua`si-random variates
+		   % NAG = 1  Use NAG libraries for scrambled Quasi-random variates
 		   % NAG = 2  USe NAG libraries for unscrambled
 
 tic;
-[p,c,err] = CMD_heston_MC_GRID(S,rho,V0,xi,theta,kappa,K,T,NoSteps,NoPaths,lambda,r,q,NAG);
+[p,c,err] = CMD_heston_MC(S,rho,V0,xi,theta,kappa,K,T,NoSteps,NoPaths,lambda,r,q,NAG);
+%[p,c,err] = Techila_GRID(S,rho,V0,xi,theta,kappa,K,T,NoSteps,NoPaths,lambda,r,q,NAG);
 t=toc;
 
-fprintf('Time: %g. Error: %g\n', t,err);
+fprintf('Price: %g. Time: %g. Error: %g\n', p,t,err);
 %h = msgbox('Finished','Finished', 'help');

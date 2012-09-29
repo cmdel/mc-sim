@@ -114,32 +114,3 @@ function [S,V] = myGPUFun(Zn1,Zn2,Uv,S,V,theta, kappa, dt, xi,r,K0,K1,K2,K3,K4)
  S = S .* exp(r*dt+ K0 + K1*Vt+K2*V + sqrt(K3*Vt + K4*V)*Zn2);
 end
 
-
-%% Internal Function for the variance
-function [Vdt]=QEvariance(Vt,theta,kappa,dt,xi, Zn, Uv) 
-% Descritise the variance using the QE Scheme by Andersen [AN06]
-% Strongly reflect at 0. Ensures no negative variance values.
-A1=exp(-kappa*dt) ;
-A2=(xi^2*A1)/kappa ;
-A3=1-A1 ;
-m=theta+(Vt-theta)*A1 ;
-s_2=Vt*A2*A3+(theta*xi^2)*A3^2/(2*kappa) ;
-psi=s_2/(m*m) ;
-psi_c=1.5 ; % As mentioned by Andersen
-
-if psi<=psi_c
-	b_2=2/psi-1+sqrt(2/psi)*sqrt(2/psi-1) ;
-	a=m/(1+b_2) ;
-    tmp=(sqrt(b_2)+Zn);
-    Vdt=a*tmp*tmp ;
-else
-	p=(psi-1)/(psi+1) ;
-	beta= (1-p)/m ;
-	if Uv<=p
-		PSIu=0;
-	else
-		PSIu=log((1-p)/(1-Uv))/beta ;
-	end
-	Vdt=PSIu ;
-end
-end
