@@ -34,9 +34,11 @@ for p = 1:purt
     	Vatm = V;
     	Satm = Si;
     	errors = err(:, :);
-	end
-    %HENAG(p) =  s30na('C', K, S(p), T,  xi , kappa, rho, V0, theta, lambda, r, q); 
-    %deltaHENAG(p) = P(p) -HENAG(p);
+    end
+    if (NAG!=-1)
+        HENAG(p) =  s30na('C', K, S(p), T,  xi , kappa, rho, V0, theta, lambda, r, q);
+        deltaHENAG(p) = P(p) -HENAG(p);
+    end
 end
 toc
 %% Produce some metrics

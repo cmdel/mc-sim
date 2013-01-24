@@ -48,8 +48,11 @@ if (NAG==1 || NAG==2)
 	[VA, iref,ifail] = g05ym(int64(paths),int64(idim),iref); % Create 3 URV
     VA=VA';
 end
-
-VA = rand(steps*3, paths);
+if (NAG==-1)
+    % If there is no NAG license generate pseudo-random uniform random
+    % numbers
+    VA = rand(steps*3, paths);
+end
 % Main Monte Carlo loop
 for pth = 1: paths
 	if (NAG==1 || NAG==2)
