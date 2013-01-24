@@ -35,8 +35,8 @@ for p = 1:purt
     	Satm = Si;
     	errors = err(:, :);
 	end
-    HENAG(p) =  s30na('C', K, S(p), T,  xi , kappa, rho, V0, theta, lambda, r, q); 
-    deltaHENAG(p) = P(p) -HENAG(p);
+    %HENAG(p) =  s30na('C', K, S(p), T,  xi , kappa, rho, V0, theta, lambda, r, q); 
+    %deltaHENAG(p) = P(p) -HENAG(p);
 end
 toc
 %% Produce some metrics
@@ -80,7 +80,7 @@ title(gca,['Variance for individual paths of the Monte Carlo Simulation']);
 subplot 223;
 plot(S,P, 'Color', 'r');
 hold on
-plot(S,HENAG);
+%plot(S,HENAG);
 hold off
 ylabel('Call Price');
 xlabel('Underlying price S ($)');

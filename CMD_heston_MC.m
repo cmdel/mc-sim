@@ -49,6 +49,7 @@ if (NAG==1 || NAG==2)
     VA=VA';
 end
 
+VA = rand(steps*3, paths);
 % Main Monte Carlo loop
 for pth = 1: paths
 	if (NAG==1 || NAG==2)
