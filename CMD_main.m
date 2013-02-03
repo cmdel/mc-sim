@@ -95,7 +95,7 @@ elseif(NAG==1)
 else
 	title(gca,['Call Option prices for the Heston models and ',num2str(T), 'year(s) maturity and NAG quasi random variates']);
 end
-legend('Monte Carlo Heston','NAG analytical Heston','Location','NorthWest')
+legend('Monte Carlo Heston','NAG analytical Heston','Location','NorthWest', 'Location', 'SouthEast');
 
 
 subplot 224;
